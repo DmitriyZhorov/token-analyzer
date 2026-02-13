@@ -18,8 +18,9 @@ Analyzes your Claude Code token usage and provides breakdown by task categories.
 - Weekly/monthly trends
 - Sprint analysis
 - Before/after optimization comparison
+- **✨ Fully Interactive!** - No command-line arguments needed
 
-**Quick start:** `python team_aggregator.py export --output-dir ./stats --date-from 2024-01-01 --date-to 2024-02-12`
+**Quick start:** `python team_aggregator.py` (interactive) or `python team_aggregator.py export --output-dir ./stats` (CLI)
 
 ### [Team Aggregation](TEAM_USAGE.md) - New!
 - Export stats to shared git repo
