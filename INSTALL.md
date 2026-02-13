@@ -345,8 +345,8 @@ python -c "import token_craft; print(token_craft.__version__)"
 
 ### Documentation
 - **Quick Start:** See `QUICK_START.md`
-- **Full Guide:** See `TOKEN_CRAFT_README.md`
-- **Scoring Details:** See `SCORING_AND_BONUSES_EXPLAINED.md`
+- **Full Guide:** See `README.md`
+- **Interactive Guide:** See `INTERACTIVE_GUIDE.md`
 
 ### Community
 - **Issues:** https://github.com/DmitriyZhorov/token-analyzer/issues

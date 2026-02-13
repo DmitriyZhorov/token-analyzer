@@ -184,10 +184,10 @@ Skill automatically points to shared installation!
 ## Documentation Included
 
 1. **INSTALL.md** - Step-by-step installation
-2. **TOKEN_CRAFT_README.md** - Complete user guide
+2. **README.md** - Complete user guide
 3. **QUICK_START.md** - Quick reference
-4. **SCORING_AND_BONUSES_EXPLAINED.md** - How scoring works
-5. **IMPLEMENTATION_COMPLETE.md** - Technical details
+4. **INTERACTIVE_GUIDE.md** - Interactive features guide
+5. **TEAM_USAGE.md** - Team features and leaderboards
 6. **This file** - Sharing guide
 
 ---
@@ -244,7 +244,7 @@ def __init__(self, api_url: str = None, api_key: str = None):
 
 ### Getting Help
 - **Quick issues:** Check `INSTALL.md` troubleshooting section
-- **Usage questions:** Read `TOKEN_CRAFT_README.md`
+- **Usage questions:** Read `README.md` and `INTERACTIVE_GUIDE.md`
 - **Bug reports:** GitHub Issues
 - **Feature requests:** GitHub Discussions
 
@@ -299,7 +299,7 @@ When sharing Token-Craft with your team:
 
 - [ ] Package entire repository (ZIP or Git)
 - [ ] Include `INSTALL.md` (mandatory!)
-- [ ] Include `TOKEN_CRAFT_README.md` (recommended)
+- [ ] Include `README.md` and `QUICK_START.md` (recommended)
 - [ ] Test installation on clean machine
 - [ ] Provide your contact info for support
 - [ ] Set up internal support channel (Slack/Teams)
@@ -335,7 +335,7 @@ I'm a Captain (835/1000 points) with 30% better efficiency than baseline!
 
 📚 Documentation:
 - Quick Start: See QUICK_START.md
-- Full Guide: See TOKEN_CRAFT_README.md
+- Full Guide: See README.md
 - Support: Message me or check docs
 
 Let's optimize together! 🚀

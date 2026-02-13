@@ -153,7 +153,9 @@ python ../team_aggregator.py aggregate --stats-dir .
 claude-token-analyzer/
 ├── analyze_tokens_v2.py      # Interactive analyzer
 ├── team_aggregator.py         # Time & team features
-├── README_V2.md               # V2 documentation
+├── skill_handler.py           # Main entry point
+├── token_craft/               # Core package
+├── README.md                  # Main documentation
 ├── TEAM_USAGE.md              # Team guide
 ├── TIME_BASED_ANALYSIS.md     # Time analysis guide
 └── QUICK_START.md             # This file
@@ -175,7 +177,7 @@ team-claude-stats/ (shared repo)
 1. **Try personal analysis**: `python analyze_tokens_v2.py`
 2. **Export time period**: `python team_aggregator.py export --output-dir ./stats`
 3. **Read detailed guides**:
-   - [V2 Features](README_V2.md)
+   - [Main README](README.md)
    - [Time Analysis](TIME_BASED_ANALYSIS.md)
    - [Team Usage](TEAM_USAGE.md)
 

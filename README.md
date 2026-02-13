@@ -1,92 +1,67 @@
-# Claude Code Token Analyzer
+# Token-Craft
 
-Analyzes your Claude Code token usage and provides breakdown by task categories.
+**Gamified LLM token optimization tool** that analyzes Claude Code usage and provides personalized recommendations through space exploration ranks.
 
-## 🆕 Latest Features!
+## Features
 
-### [Version 2](README_V2.md) - Interactive Analyzer
-- Scope selection (choose projects to analyze)
-- Interactive optimization with trade-off analysis
-- Delta tracking and improvement measurement
-- Detailed estimated savings
-- Snapshot history
+- **Interactive Analysis** - Scope selection, optimization recommendations, delta tracking
+- **Space Explorer Ranks** - Progress through ranks from Space Cadet to Grand Explorer
+- **Time-Based Analysis** - Filter by date range, weekly/monthly trends, sprint analysis
+- **Team Features** - Leaderboards, team-level insights, collaborative tracking
+- **Cost Tracking** - Multi-deployment pricing (Direct API, AWS Bedrock, Google Vertex)
+- **Claude Skill Integration** - Use `/token-craft` command in Claude Code
 
-**Quick start:** `python analyze_tokens_v2.py`
+## Quick Start
 
-### [Time-Based Analysis](TIME_BASED_ANALYSIS.md) - New!
-- Filter by date range
-- Weekly/monthly trends
-- Sprint analysis
-- Before/after optimization comparison
-- **✨ Fully Interactive!** - No command-line arguments needed
-
-**Quick start:** `python team_aggregator.py` (interactive) or `python team_aggregator.py export --output-dir ./stats` (CLI)
-
-### [Team Aggregation](TEAM_USAGE.md) - New!
-- Export stats to shared git repo
-- Team-level insights
-- Collaborative tracking
-- Individual contributor breakdown
-
-**Quick start:** `python team_aggregator.py aggregate --stats-dir ./team-stats`
-
-📚 **[Quick Start Guide](QUICK_START.md)** - Start here!
-
----
-
-## Version 1 (Original)
-
-## What it does
-
-- Shows total token usage across all models (Sonnet, Opus, Haiku)
-- Breaks down sessions by task type (Configuration, File Operations, Debugging, etc.)
-- Provides project-specific breakdown (sessions and messages per project)
-- Shows activity statistics (sessions, messages, tool calls)
-- Lists sample sessions for each category
-- Detects optimization opportunities and provides actionable insights
-- **Interactive Wizard**: Apply optimizations automatically with one click
-
-## Usage
-
+**As a Claude Skill:**
 ```bash
-python analyze_tokens.py
+/token-craft
 ```
 
-The script reads from your Claude Code data:
-- `~/.claude/stats-cache.json` - Token usage statistics
-- `~/.claude/history.jsonl` - Conversation history
+**Standalone:**
+```bash
+python skill_handler.py
+```
+
+📚 **[Installation Guide](INSTALL.md)** | **[Quick Start](QUICK_START.md)** | **[Skill Setup](SKILL_INSTALLATION.md)**
+
+## What it Does
+
+- **Token Analysis** - Breakdown by model, task category, and project
+- **Optimization Recommendations** - Personalized suggestions based on your usage patterns
+- **Progress Tracking** - Snapshot history to measure improvements
+- **Scoring System** - Earn points for optimization practices (context efficiency, tool use, etc.)
+- **Cost Calculations** - Estimate spending across different deployment methods
+- **Team Leaderboards** - Company-wide and project-level rankings
 
 ## Requirements
 
-- Python 3.x
+- Python 3.8+
 - Claude Code installed
+- Optional: `requests` (for hero.epam.com API integration)
 
-## Output
+## Data Sources
 
-The analyzer will show:
-- Token breakdown by model
-- Total tokens used
-- Activity statistics
-- Task category distribution with visual bars
-- Sample sessions for each category
-- Project-specific breakdown
-- Token optimization insights
-- Interactive optimization wizard
+Reads from your Claude Code data:
+- `~/.claude/stats-cache.json` - Token usage statistics
+- `~/.claude/history.jsonl` - Conversation history
 
-## Optimization Wizard
+## Documentation
 
-After analysis, the tool offers an interactive questionnaire where you can:
+- **[Quick Start Guide](QUICK_START.md)** - Get started in 5 minutes
+- **[Installation](INSTALL.md)** - Detailed setup instructions
+- **[Skill Installation](SKILL_INSTALLATION.md)** - Add `/token-craft` command to Claude Code
+- **[Team Usage](TEAM_USAGE.md)** - Team features and leaderboards
+- **[Time-Based Analysis](TIME_BASED_ANALYSIS.md)** - Filtering and trend analysis
+- **[Interactive Guide](INTERACTIVE_GUIDE.md)** - Using interactive features
+- **[Sharing](SHARE_PACKAGE.md)** - Distribution and packaging
 
-1. **Defer Documentation** - Add rules to skip README/comments until pushing to GitHub
-2. **Reduce Configuration Time** - Create CLAUDE.md templates for your projects
-3. **Command Cheat Sheet** - Generate a quick reference for common commands
-4. **Concise Response Mode** - Set preference for brief responses by default
+## Version
 
-The wizard will automatically:
-- Create/update CLAUDE.md files in your top 3 projects
-- Generate command reference files
-- Apply your chosen optimizations
+**v1.1.0** (February 12, 2026)
+- 100/100 Anthropic best practices alignment
+- 8 optimization practices tracked
+- Flexible pricing system
+- Fully interactive handlers
 
-## Note
-
-Claude Code doesn't track per-session token usage, so task categories are estimated based on keywords in your messages. Total token usage is accurate from Claude's stats file.
+See [UPGRADE_TO_V1.1.md](UPGRADE_TO_V1.1.md) and [V1.1.0_RELEASE_NOTES.md](V1.1.0_RELEASE_NOTES.md) for details.
