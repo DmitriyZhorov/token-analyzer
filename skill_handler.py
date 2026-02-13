@@ -231,9 +231,38 @@ class TokenCraftHandler:
         return status
 
 
+def show_menu():
+    """Show interactive menu and get user choice."""
+    print("\n" + "="*70)
+    print("              TOKEN-CRAFT - Interactive Menu")
+    print("="*70)
+    print("\nHow would you like to view your report?\n")
+    print("  [1] Full Report (detailed breakdown with recommendations)")
+    print("  [2] Quick Summary (rank and score overview)")
+    print("  [3] One-Line Status (just rank and score)")
+    print("  [4] JSON Output (for programmatic access)")
+    print("  [Q] Quit")
+    print("\n" + "="*70)
+
+    while True:
+        choice = input("\nYour choice: ").strip().upper()
+
+        if choice in ['1', 'FULL', 'F']:
+            return 'full'
+        elif choice in ['2', 'SUMMARY', 'S']:
+            return 'summary'
+        elif choice in ['3', 'QUICK', 'Q', 'ONE']:
+            return 'quick'
+        elif choice in ['4', 'JSON', 'J']:
+            return 'json'
+        elif choice in ['QUIT', 'EXIT', 'Q']:
+            return None
+        else:
+            print("❌ Invalid choice. Please select 1, 2, 3, 4, or Q.")
+
+
 def main():
-    """Main entry point."""
-    import argparse
+    """Main entry point - fully interactive."""
     import sys
     import io
 
@@ -242,32 +271,25 @@ def main():
         sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
         sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
-    parser = argparse.ArgumentParser(description="Token-Craft: Master LLM efficiency")
-    parser.add_argument(
-        "--mode",
-        choices=["full", "summary", "quick"],
-        default="full",
-        help="Report mode (default: full)"
-    )
-    parser.add_argument(
-        "--json",
-        action="store_true",
-        help="Output as JSON instead of formatted report"
-    )
+    # Show menu and get choice
+    mode = show_menu()
 
-    args = parser.parse_args()
+    if mode is None:
+        print("\n👋 Thanks for using Token-Craft!")
+        return
 
+    # Run analysis
     handler = TokenCraftHandler()
-    report = handler.run(mode=args.mode)
 
-    if args.json and args.mode == "full":
-        # Return JSON for programmatic access
+    if mode == 'json':
+        report = handler.run(mode='full')
         output = {
             "profile": handler.profile.get_current_state(),
             "report": report
         }
         print(json.dumps(output, indent=2))
     else:
+        report = handler.run(mode=mode)
         print(report)
 
 

@@ -488,8 +488,7 @@ class TokenCraftHandlerFull:
 
 
 def main():
-    """Main entry point."""
-    import argparse
+    """Main entry point - fully interactive."""
     import sys
     import io
 
@@ -498,26 +497,9 @@ def main():
         sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
         sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
-    parser = argparse.ArgumentParser(description="Token-Craft: Master LLM efficiency")
-    parser.add_argument("--mode", choices=["full", "summary", "quick", "interactive"], default="interactive", help="Report mode")
-    parser.add_argument("--json", action="store_true", help="Output as JSON")
-
-    args = parser.parse_args()
-
+    # Always run in interactive mode
     handler = TokenCraftHandlerFull()
-
-    if args.mode == "interactive":
-        handler.run_interactive()
-    else:
-        # Non-interactive mode
-        if handler.run_analysis():
-            if args.mode == "full":
-                handler.show_full_report()
-            elif args.mode == "summary":
-                # TODO: Add summary mode
-                handler.show_full_report()
-            elif args.mode == "quick":
-                print(f"{handler.current_rank_data['icon']} {handler.current_rank_data['name']} - {handler.current_score_data['total_score']:.0f} points")
+    handler.run_interactive()
 
 
 if __name__ == "__main__":
