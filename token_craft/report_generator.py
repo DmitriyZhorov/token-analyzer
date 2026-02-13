@@ -8,6 +8,7 @@ from typing import Dict, List, Optional
 from .progress_visualizer import ProgressVisualizer
 from .rank_system import SpaceRankSystem
 from .delta_calculator import DeltaCalculator
+from .cost_alerts import CostAlerts
 
 
 class ReportGenerator:
@@ -16,6 +17,7 @@ class ReportGenerator:
     def __init__(self):
         """Initialize report generator."""
         self.visualizer = ProgressVisualizer()
+        self.cost_alerts = CostAlerts()
 
     def generate_full_report(
         self,
@@ -60,6 +62,11 @@ class ReportGenerator:
         # Stats summary
         stats = self.visualizer.create_stats_summary(profile_data)
         sections.append(stats)
+
+        # Cost tracking
+        cost_summary = self._generate_cost_section(profile_data)
+        if cost_summary:
+            sections.append(cost_summary)
 
         # Top recommendations
         recommendations = self._generate_recommendations(score_data, profile_data)
@@ -211,6 +218,32 @@ class ReportGenerator:
         recommendations.sort(key=lambda x: x["priority"])
 
         return recommendations
+
+    def _generate_cost_section(self, profile_data: Dict) -> str:
+        """Generate cost tracking section."""
+        total_tokens = profile_data.get("total_tokens", 0)
+        total_sessions = profile_data.get("total_sessions", 1)
+        avg_tokens = profile_data.get("avg_tokens_per_session", 0)
+
+        # Skip if no token data
+        if total_tokens == 0:
+            return ""
+
+        lines = []
+        lines.append("Cost Tracking:")
+        lines.append("=" * 70)
+        lines.append("")
+
+        # Get cost summary
+        cost_summary = self.cost_alerts.format_cost_summary(
+            total_tokens,
+            avg_tokens,
+            total_sessions
+        )
+        lines.append(cost_summary)
+        lines.append("")
+
+        return "\n".join(lines)
 
     def _generate_achievements_section(self, achievements: List[Dict]) -> str:
         """Generate achievements section."""
