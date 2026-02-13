@@ -2,16 +2,34 @@
 
 Analyzes your Claude Code token usage and provides breakdown by task categories.
 
-## 🆕 Version 2 Available!
+## 🆕 Latest Features!
 
-**New:** [Version 2](README_V2.md) includes advanced features:
+### [Version 2](README_V2.md) - Interactive Analyzer
 - Scope selection (choose projects to analyze)
 - Interactive optimization with trade-off analysis
 - Delta tracking and improvement measurement
 - Detailed estimated savings
 - Snapshot history
 
-**Quick start V2:** `python analyze_tokens_v2.py`
+**Quick start:** `python analyze_tokens_v2.py`
+
+### [Time-Based Analysis](TIME_BASED_ANALYSIS.md) - New!
+- Filter by date range
+- Weekly/monthly trends
+- Sprint analysis
+- Before/after optimization comparison
+
+**Quick start:** `python team_aggregator.py export --output-dir ./stats --date-from 2024-01-01 --date-to 2024-02-12`
+
+### [Team Aggregation](TEAM_USAGE.md) - New!
+- Export stats to shared git repo
+- Team-level insights
+- Collaborative tracking
+- Individual contributor breakdown
+
+**Quick start:** `python team_aggregator.py aggregate --stats-dir ./team-stats`
+
+📚 **[Quick Start Guide](QUICK_START.md)** - Start here!
 
 ---
 
