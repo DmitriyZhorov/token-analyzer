@@ -30,8 +30,9 @@ class TokenCraftScorer:
     }
 
     # Company baseline (can be updated from real data)
+    # Updated to reflect real coding session usage (2026-02-12)
     DEFAULT_BASELINE = {
-        "tokens_per_session": 15000,
+        "tokens_per_session": 30000,  # Realistic for coding sessions
         "tokens_per_message": 1500,
         "self_sufficiency_rate": 0.40,
         "optimization_adoption_rate": 0.30
@@ -63,6 +64,9 @@ class TokenCraftScorer:
         # Calculate tokens
         self.total_tokens = self._calculate_total_tokens()
         self.avg_tokens_per_session = self.total_tokens / self.total_sessions if self.total_sessions > 0 else 0
+
+        # Calculate dynamic baseline
+        self.dynamic_baseline = self._calculate_dynamic_baseline()
 
     def _group_by_sessions(self) -> List[Dict]:
         """Group history data by session."""
@@ -98,36 +102,144 @@ class TokenCraftScorer:
 
         return total
 
+    def _calculate_dynamic_baseline(self) -> float:
+        """
+        Calculate dynamic baseline from user's best performing sessions.
+
+        Uses the best 25% of sessions (P25) and reduces by 10% as target.
+        Falls back to fixed baseline if insufficient data (<10 sessions).
+
+        Returns:
+            Dynamic baseline in tokens per session
+        """
+        # Need at least 10 sessions for meaningful dynamic baseline
+        if self.total_sessions < 10:
+            return self.baseline["tokens_per_session"]
+
+        # Calculate tokens per session for each session
+        # We need to distribute total tokens across sessions proportionally
+        if self.total_sessions == 0:
+            return self.baseline["tokens_per_session"]
+
+        # For now, use average as approximation
+        # TODO: Track per-session tokens in history.jsonl for more accuracy
+        session_tokens = []
+        tokens_per_session_avg = self.avg_tokens_per_session
+
+        # Simple model: assume roughly similar distribution
+        # In future, enhance history.jsonl to track per-session tokens
+        for session in self.sessions:
+            # Estimate: distribute total tokens proportionally by message count
+            if self.total_messages > 0:
+                session_msg_count = len(session["messages"])
+                estimated_tokens = (session_msg_count / self.total_messages) * self.total_tokens
+                session_tokens.append(estimated_tokens)
+
+        if not session_tokens:
+            return self.baseline["tokens_per_session"]
+
+        # Sort to find best performing sessions (lowest tokens)
+        session_tokens_sorted = sorted(session_tokens)
+
+        # Get P25 (best 25%)
+        p25_index = len(session_tokens_sorted) // 4
+        if p25_index == 0:
+            p25_index = 1
+
+        best_sessions = session_tokens_sorted[:p25_index]
+        best_avg = statistics.mean(best_sessions)
+
+        # Set baseline as 90% of best quartile (10% improvement target)
+        dynamic_baseline = best_avg * 0.90
+
+        # Don't set impossibly low baseline (min 15000 tokens - reasonable for any session)
+        dynamic_baseline = max(15000, dynamic_baseline)
+
+        # If dynamic baseline is unreasonably low compared to user average,
+        # it means our estimation failed - use fixed baseline instead
+        if dynamic_baseline < self.avg_tokens_per_session * 0.5:
+            # Estimation failed, use fixed baseline
+            return self.baseline["tokens_per_session"]
+
+        # Don't set higher than fixed baseline (defeats purpose)
+        dynamic_baseline = min(dynamic_baseline, self.baseline["tokens_per_session"])
+
+        return round(dynamic_baseline, 0)
+
     def calculate_token_efficiency_score(self) -> Dict:
         """
-        Calculate Token Efficiency score (35%, 350 points max).
+        Calculate Token Efficiency score (30%, 300 points max).
 
-        Compares user's average tokens/session against company baseline.
+        Compares user's average tokens/session against dynamic baseline.
+        Uses tiered scoring for fairness:
+        - < baseline: 300 pts (Excellent)
+        - baseline - 1.5x: 200 pts (Good)
+        - 1.5x - 2x: 100 pts (Average)
+        - 2x - 3x: 50 pts (Needs Work)
+        - > 3x: 0 pts (Poor)
 
         Returns:
             Dict with score details
         """
-        baseline_avg = self.baseline["tokens_per_session"]
+        # Use dynamic baseline (falls back to fixed if <10 sessions)
+        baseline_avg = self.dynamic_baseline
         user_avg = self.avg_tokens_per_session
+        using_dynamic = self.total_sessions >= 10
 
-        if baseline_avg == 0:
-            improvement_pct = 0
+        if baseline_avg == 0 or user_avg == 0:
+            # No data yet
+            return {
+                "score": 150,  # Neutral score
+                "max_score": self.WEIGHTS["token_efficiency"],
+                "percentage": 50.0,
+                "user_avg": round(user_avg, 0),
+                "baseline_avg": round(baseline_avg, 0),
+                "baseline_type": "none",
+                "tier": "no_data",
+                "details": {
+                    "total_sessions": self.total_sessions,
+                    "total_tokens": self.total_tokens,
+                    "avg_tokens_per_session": round(user_avg, 0)
+                }
+            }
+
+        # Calculate ratio
+        ratio = user_avg / baseline_avg
+
+        # Tiered scoring
+        if ratio <= 1.0:
+            # At or below baseline - excellent!
+            score = 300
+            tier = "excellent"
+        elif ratio <= 1.5:
+            # Up to 1.5x baseline - good
+            score = 200
+            tier = "good"
+        elif ratio <= 2.0:
+            # Up to 2x baseline - average
+            score = 100
+            tier = "average"
+        elif ratio <= 3.0:
+            # Up to 3x baseline - needs work
+            score = 50
+            tier = "needs_work"
         else:
-            improvement_pct = ((baseline_avg - user_avg) / baseline_avg) * 100
+            # Over 3x baseline - poor
+            score = 0
+            tier = "poor"
 
-        # Cap at +/- 50%
-        normalized_improvement = max(-50, min(50, improvement_pct))
-
-        # Calculate score (50% better = 350 points, 50% worse = -175 points)
-        score = (normalized_improvement / 50.0) * self.WEIGHTS["token_efficiency"]
-        score = max(0, score)  # Don't allow negative scores in total
+        # Calculate improvement percentage
+        improvement_pct = ((baseline_avg - user_avg) / baseline_avg) * 100
 
         return {
             "score": round(score, 1),
             "max_score": self.WEIGHTS["token_efficiency"],
             "percentage": round((score / self.WEIGHTS["token_efficiency"]) * 100, 1),
             "user_avg": round(user_avg, 0),
-            "baseline_avg": baseline_avg,
+            "baseline_avg": round(baseline_avg, 0),
+            "baseline_type": "dynamic" if using_dynamic else "fixed",
+            "ratio": round(ratio, 2),
+            "tier": tier,
             "improvement_pct": round(improvement_pct, 1),
             "details": {
                 "total_sessions": self.total_sessions,
@@ -451,25 +563,36 @@ class TokenCraftScorer:
 
     def _calculate_tier_score(self, consistency: float, max_points: int) -> float:
         """
-        Calculate tiered score based on consistency rate.
+        Calculate smooth sliding scale score based on consistency rate.
 
-        Tiers:
-        - 80-100%: Full points
-        - 60-79%: 75% of points
-        - 40-59%: 50% of points
-        - 20-39%: 25% of points
-        - 0-19%: 0 points
+        Provides gradual increases for better progress visibility.
+        Users see improvement every 5-10% instead of big jumps.
+
+        Scoring curves:
+        - 90-100%: Full points (100%)
+        - 70-89%: Interpolated 85-100%
+        - 50-69%: Interpolated 65-85%
+        - 30-49%: Interpolated 40-65%
+        - 0-29%: Linear from 0%
         """
-        if consistency >= 0.80:
+        if consistency >= 0.90:
+            # Excellent - full points
             return max_points
-        elif consistency >= 0.60:
-            return max_points * 0.75
-        elif consistency >= 0.40:
-            return max_points * 0.50
-        elif consistency >= 0.20:
-            return max_points * 0.25
+        elif consistency >= 0.70:
+            # Good - interpolate between 85% and 100%
+            ratio = (consistency - 0.70) / 0.20
+            return max_points * (0.85 + (0.15 * ratio))
+        elif consistency >= 0.50:
+            # Average - interpolate between 65% and 85%
+            ratio = (consistency - 0.50) / 0.20
+            return max_points * (0.65 + (0.20 * ratio))
+        elif consistency >= 0.30:
+            # Below average - interpolate between 40% and 65%
+            ratio = (consistency - 0.30) / 0.20
+            return max_points * (0.40 + (0.25 * ratio))
         else:
-            return 0
+            # Poor - linear from 0 to 40%
+            return max_points * (consistency / 0.30) * 0.40
 
     def calculate_self_sufficiency_score(self) -> Dict:
         """
@@ -497,9 +620,10 @@ class TokenCraftScorer:
 
     def calculate_improvement_trend_score(self, previous_snapshot: Optional[Dict] = None) -> Dict:
         """
-        Calculate Improvement Trend score (15%, 150 points max).
+        Calculate Improvement Trend score (12.5%, 125 points max).
 
-        Compares recent 30 days vs previous 30 days.
+        Includes warm-up period for new users (<10 sessions).
+        Compares rolling windows for established users.
 
         Args:
             previous_snapshot: Previous snapshot data for comparison
@@ -507,12 +631,23 @@ class TokenCraftScorer:
         Returns:
             Dict with score details
         """
+        # Warm-up period for new users (<10 sessions)
+        if self.total_sessions < 10:
+            return {
+                "score": 50,
+                "max_score": self.WEIGHTS["improvement_trend"],
+                "percentage": 40.0,
+                "improvement_pct": 0,
+                "status": "warming_up",
+                "message": f"Session {self.total_sessions}/10 - Establishing baseline"
+            }
+
         if not previous_snapshot:
             # No previous data, give baseline score
             return {
                 "score": 50,
                 "max_score": self.WEIGHTS["improvement_trend"],
-                "percentage": 33.3,
+                "percentage": 40.0,
                 "improvement_pct": 0,
                 "status": "baseline",
                 "message": "No previous snapshot for comparison"
