@@ -49,7 +49,7 @@ claude-token-analyzer/
 ### 1. Download
 ```bash
 # Clone from GitHub
-git clone https://github.com/DmitriyZhorov/claude-token-analyzer.git
+git clone https://github.com/DmitriyZhorov/token-analyzer.git
 cd claude-token-analyzer
 ```
 
@@ -92,7 +92,7 @@ cp token-craft.md ~/.claude/skills/token-craft.md
 **Setup:**
 ```bash
 # IT Admin creates internal repo
-git clone https://github.com/DmitriyZhorov/claude-token-analyzer.git
+git clone https://github.com/DmitriyZhorov/token-analyzer.git
 cd claude-token-analyzer
 git remote set-url origin https://internal-git.company.com/tools/token-craft.git
 git push -u origin master

@@ -183,7 +183,7 @@ When you invoke `/token-craft`, the skill:
 
 1. Changes directory to:
    ```
-   C:\Users\Dmitriy_Zhorov\Documents\Personal\GenAI\claude-token-analyzer
+   C:\Users\Dmitriy_Zhorov\Documents\Personal\GenAI\token-analyzer
    ```
 
 2. Runs the interactive handler:
@@ -229,7 +229,7 @@ When you invoke `/token-craft`, the skill:
 
 ### Direct Execution (Alternative)
 ```bash
-cd C:\Users\Dmitriy_Zhorov\Documents\Personal\GenAI\claude-token-analyzer
+cd C:\Users\Dmitriy_Zhorov\Documents\Personal\GenAI\token-analyzer
 python skill_handler.py
 ```
 
@@ -282,7 +282,7 @@ ls -la ~/.claude/history.jsonl
 
 **Check the Token-Craft directory exists:**
 ```bash
-dir "C:\Users\Dmitriy_Zhorov\Documents\Personal\GenAI\claude-token-analyzer"
+dir "C:\Users\Dmitriy_Zhorov\Documents\Personal\GenAI\token-analyzer"
 ```
 
 **If wrong path:** Edit `SKILL.md` and update the `cd` command path.
@@ -322,7 +322,7 @@ To share this skill with your team:
 
 ### Option 1: Everyone Clones Repo
 Each team member:
-1. Clones the claude-token-analyzer repo
+1. Clones the token-analyzer repo
 2. Skill file is already in their `~/.claude/skills/token-craft/`
 3. Done! ✅
 
@@ -396,7 +396,7 @@ If your org uses [managed settings](https://code.claude.com/docs/en/permissions#
 ---
 
 **Skill Location:** `~/.claude/skills/token-craft/SKILL.md`
-**Main Repo:** `C:\Users\Dmitriy_Zhorov\Documents\Personal\GenAI\claude-token-analyzer`
+**Main Repo:** `C:\Users\Dmitriy_Zhorov\Documents\Personal\GenAI\token-analyzer`
 **Version:** 1.1.0
 **Status:** ✅ Production Ready
 

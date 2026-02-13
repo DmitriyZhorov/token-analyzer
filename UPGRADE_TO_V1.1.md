@@ -400,7 +400,7 @@ print(score_data['breakdown']['examples'])
 
 ```bash
 # Run the pricing calculator
-cd /path/to/claude-token-analyzer
+cd /path/to/token-analyzer
 python token_craft/pricing_calculator.py
 
 # Output:
@@ -471,7 +471,7 @@ If EPAM has special pricing, edit `token_craft/pricing_config.json`:
 
 ```bash
 # Create updated ZIP
-cd /path/to/claude-token-analyzer
+cd /path/to/token-analyzer
 git pull  # Get latest v1.1.0
 zip -r token-craft-v1.1.0.zip token_craft/ skill_handler*.py token-craft.md *.md
 

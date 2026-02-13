@@ -8,7 +8,7 @@ Install the `/token-craft` skill to track and optimize your LLM token usage thro
 
 ```bash
 # Option A: Clone from GitHub (if published)
-git clone https://github.com/DmitriyZhorov/claude-token-analyzer.git
+git clone https://github.com/DmitriyZhorov/token-analyzer.git
 cd claude-token-analyzer
 
 # Option B: Download ZIP and extract
@@ -141,7 +141,7 @@ cd ~/tools/claude-token-analyzer
 
 1. **IT Admin:** Create internal repository
    ```bash
-   git clone https://github.com/DmitriyZhorov/claude-token-analyzer.git
+   git clone https://github.com/DmitriyZhorov/token-analyzer.git
    cd claude-token-analyzer
    git remote set-url origin https://internal-git.company.com/tools/token-craft.git
    git push -u origin master
@@ -349,8 +349,8 @@ python -c "import token_craft; print(token_craft.__version__)"
 - **Scoring Details:** See `SCORING_AND_BONUSES_EXPLAINED.md`
 
 ### Community
-- **Issues:** https://github.com/DmitriyZhorov/claude-token-analyzer/issues
-- **Discussions:** https://github.com/DmitriyZhorov/claude-token-analyzer/discussions
+- **Issues:** https://github.com/DmitriyZhorov/token-analyzer/issues
+- **Discussions:** https://github.com/DmitriyZhorov/token-analyzer/discussions
 
 ### Internal Support (EPAM)
 - **Contact:** Dmitriy Zhorov <dmitriy_zhorov@epam.com>

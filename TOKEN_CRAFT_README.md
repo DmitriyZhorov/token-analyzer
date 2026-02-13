@@ -75,7 +75,7 @@ Basic setup and configuration:
 
 2. **File Structure**:
 ```
-claude-token-analyzer/
+token-analyzer/
 ├── token_craft/           # Core package
 │   ├── scoring_engine.py
 │   ├── rank_system.py

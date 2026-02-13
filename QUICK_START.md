@@ -183,4 +183,4 @@ team-claude-stats/ (shared repo)
 
 - All scripts support `--help`: `python team_aggregator.py --help`
 - Check documentation for detailed examples
-- Open issues on GitHub: https://github.com/DmitriyZhorov/claude-token-analyzer
+- Open issues on GitHub: https://github.com/DmitriyZhorov/token-analyzer
