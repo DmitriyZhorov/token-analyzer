@@ -47,7 +47,7 @@ When user types `/token-craft`:
 
 1. Run the Python skill handler:
    ```bash
-   cd C:\Users\Dmitriy_Zhorov\Documents\Personal\GenAI\claude-token-analyzer
+   cd /path/to/token-analyzer
    python skill_handler.py --mode full
    ```
 

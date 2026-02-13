@@ -123,7 +123,7 @@ Output example:
       Sessions: 20, Messages: 580
     Bob Johnson <bob@company.com>
       Sessions: 15, Messages: 420
-    Dmitriy Zhorov <dmitriy_zhorov@epam.com>
+    Charlie Wilson <charlie@company.com>
       Sessions: 10, Messages: 250
 
 [+] Top Team Projects:
@@ -224,8 +224,8 @@ Each personal export contains:
 {
   "exported_at": "2024-02-12T18:00:00",
   "user": {
-    "name": "Dmitriy Zhorov",
-    "email": "dmitriy_zhorov@epam.com"
+    "name": "Your Name",
+    "email": "your.email@company.com"
   },
   "date_range": {
     "from": "2024-01-01T00:00:00",

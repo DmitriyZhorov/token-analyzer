@@ -352,10 +352,6 @@ python -c "import token_craft; print(token_craft.__version__)"
 - **Issues:** https://github.com/DmitriyZhorov/token-analyzer/issues
 - **Discussions:** https://github.com/DmitriyZhorov/token-analyzer/discussions
 
-### Internal Support (EPAM)
-- **Contact:** Dmitriy Zhorov <dmitriy_zhorov@epam.com>
-- **Slack:** #token-craft-support (create if needed)
-
 ---
 
 ## Next Steps After Installation

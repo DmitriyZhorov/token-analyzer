@@ -81,14 +81,14 @@ Options:
 **Step 3: Results**
 ```
 [+] Statistics Exported!
-    File: ./my-stats/dmitriy_zhorov_at_epam.com_20240212_180000.json
-    User: Dmitriy Zhorov <dmitriy_zhorov@epam.com>
+    File: ./my-stats/username_at_company_20240212_180000.json
+    User: Your Name <your.email@company.com>
     Sessions: 19
     Messages: 200
 
 [+] Top Projects:
-    Dmitriy_Zhorov: 8 sessions, 138 messages
-    GenAI: 5 sessions, 16 messages
+    YourProject: 8 sessions, 138 messages
+    AnotherProject: 5 sessions, 16 messages
 ```
 
 **Step 4: Git Operations** (if in git repo)
@@ -142,7 +142,7 @@ Found 3 potential stat file(s)...
       Sessions: 20, Messages: 580
     Bob Johnson <bob@company.com>
       Sessions: 15, Messages: 420
-    Dmitriy Zhorov <dmitriy_zhorov@epam.com>
+    Charlie Wilson <charlie@company.com>
       Sessions: 10, Messages: 250
 
 [+] Top Team Projects:

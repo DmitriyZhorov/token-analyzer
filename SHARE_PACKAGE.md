@@ -385,4 +385,4 @@ and running simple commands directly. I reached Navigator rank!"*
 
 ---
 
-Questions? Contact: Dmitriy Zhorov <dmitriy_zhorov@epam.com>
+Questions? Open an issue on GitHub: https://github.com/DmitriyZhorov/token-analyzer/issues
