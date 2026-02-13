@@ -168,7 +168,12 @@ class ProgressVisualizer:
             ("optimization_adoption", "Optimization Adoption"),
             ("self_sufficiency", "Self-Sufficiency"),
             ("improvement_trend", "Improvement Trend"),
-            ("best_practices", "Best Practices")
+            ("best_practices", "Best Practices"),
+            ("cache_effectiveness", "Cache Effectiveness"),
+            ("tool_efficiency", "Tool Efficiency"),
+            ("cost_efficiency", "Cost Efficiency"),
+            ("session_focus", "Session Focus"),
+            ("learning_growth", "Learning & Growth")
         ]
 
         for cat_key, cat_name in categories:

@@ -10,58 +10,59 @@ from typing import Dict, Optional
 class SpaceRankSystem:
     """Manage space exploration ranks and progression."""
 
+    # Updated for v2.0 - 1350 total points (was 1000)
     RANKS = [
         {
             "name": "Cadet",
             "min": 0,
-            "max": 199,
+            "max": 269,
             "description": "Academy training, learning fundamentals",
             "badge_id": "token_craft_cadet",
             "icon": "🎓"
         },
         {
             "name": "Pilot",
-            "min": 200,
-            "max": 399,
+            "min": 270,
+            "max": 539,
             "description": "First missions, gaining experience",
             "badge_id": "token_craft_pilot",
             "icon": "✈️"
         },
         {
             "name": "Navigator",
-            "min": 400,
-            "max": 599,
+            "min": 540,
+            "max": 809,
             "description": "Charting efficient courses",
             "badge_id": "token_craft_navigator",
             "icon": "🧭"
         },
         {
             "name": "Commander",
-            "min": 600,
-            "max": 799,
+            "min": 810,
+            "max": 1079,
             "description": "Leading missions with precision",
             "badge_id": "token_craft_commander",
             "icon": "⭐"
         },
         {
             "name": "Captain",
-            "min": 800,
-            "max": 999,
+            "min": 1080,
+            "max": 1349,
             "description": "Commanding the ship with mastery",
             "badge_id": "token_craft_captain",
             "icon": "👨‍✈️"
         },
         {
             "name": "Admiral",
-            "min": 1000,
-            "max": 1199,
+            "min": 1350,
+            "max": 1619,
             "description": "Fleet command, strategic excellence",
             "badge_id": "token_craft_admiral",
             "icon": "🎖️"
         },
         {
             "name": "Galactic Legend",
-            "min": 1200,
+            "min": 1620,
             "max": 9999,
             "description": "Explored uncharted territories",
             "badge_id": "token_craft_legend",

@@ -19,14 +19,19 @@ import statistics
 class TokenCraftScorer:
     """Calculate token optimization scores."""
 
-    # Scoring weights (total = 1000 points)
-    # Updated to 100% Anthropic best practices alignment
+    # Scoring weights (total = 1350 points for v2.0)
+    # Updated to 100% Anthropic best practices alignment + new categories
     WEIGHTS = {
-        "token_efficiency": 300,       # 30%
-        "optimization_adoption": 325,  # 32.5% (increased - includes Anthropic best practices)
-        "self_sufficiency": 200,       # 20%
-        "improvement_trend": 125,      # 12.5%
-        "best_practices": 50           # 5%
+        "token_efficiency": 300,         # 22.2%
+        "optimization_adoption": 325,    # 24.1%
+        "self_sufficiency": 200,         # 14.8%
+        "improvement_trend": 125,        # 9.3%
+        "best_practices": 50,            # 3.7%
+        "cache_effectiveness": 100,      # 7.4% - NEW
+        "tool_efficiency": 75,           # 5.6% - NEW
+        "session_focus": 50,             # 3.7% - NEW
+        "cost_efficiency": 75,           # 5.6% - NEW
+        "learning_growth": 50            # 3.7% - NEW
     }
 
     # Company baseline (can be updated from real data)
@@ -752,6 +757,483 @@ class TokenCraftScorer:
             "checks": checks
         }
 
+    def calculate_cache_effectiveness_score(self) -> Dict:
+        """
+        Calculate Cache Effectiveness score (7.4%, 100 points max).
+
+        Prompt caching reduces costs by ~90%. Track cache hit rate.
+
+        Returns:
+            Dict with score details
+        """
+        # Get cache stats from stats data
+        models_data = self.stats_data.get("models") or self.stats_data.get("modelUsage")
+
+        if not models_data:
+            return {
+                "score": 0,
+                "max_score": self.WEIGHTS["cache_effectiveness"],
+                "percentage": 0,
+                "cache_hit_rate": 0,
+                "message": "No cache data available"
+            }
+
+        # Calculate total cache reads and regular inputs
+        total_cache_reads = 0
+        total_cache_creates = 0
+        total_regular_input = 0
+
+        for model, data in models_data.items():
+            if isinstance(data, dict):
+                total_cache_reads += data.get("cacheReadInputTokens", 0)
+                total_cache_creates += data.get("cacheCreationInputTokens", 0)
+                total_regular_input += data.get("inputTokens", 0)
+
+        # Calculate cache hit rate
+        total_input_opportunities = total_cache_reads + total_regular_input
+
+        if total_input_opportunities == 0:
+            cache_hit_rate = 0
+        else:
+            cache_hit_rate = (total_cache_reads / total_input_opportunities) * 100
+
+        # Score based on hit rate
+        if cache_hit_rate >= 90:
+            score = 100  # Excellent
+        elif cache_hit_rate >= 70:
+            score = 75   # Good
+        elif cache_hit_rate >= 50:
+            score = 50   # Average
+        elif cache_hit_rate >= 30:
+            score = 25   # Needs work
+        else:
+            score = 0    # Poor
+
+        # Calculate cost savings from caching
+        # Cache reads cost 90% less than regular inputs
+        cache_savings_pct = 90 if total_cache_reads > 0 else 0
+
+        return {
+            "score": score,
+            "max_score": self.WEIGHTS["cache_effectiveness"],
+            "percentage": round((score / self.WEIGHTS["cache_effectiveness"]) * 100, 1),
+            "cache_hit_rate": round(cache_hit_rate, 2),
+            "total_cache_reads": total_cache_reads,
+            "total_cache_creates": total_cache_creates,
+            "total_regular_input": total_regular_input,
+            "cache_savings_pct": cache_savings_pct,
+            "details": {
+                "excellent": cache_hit_rate >= 90,
+                "using_cache": total_cache_reads > 0
+            }
+        }
+
+    def calculate_session_focus_score(self) -> Dict:
+        """
+        Calculate Session Focus score (3.7%, 50 points max).
+
+        Optimal session length is 5-15 messages (focused work).
+
+        Returns:
+            Dict with score details
+        """
+        if self.total_sessions == 0:
+            return {
+                "score": 25,
+                "max_score": self.WEIGHTS["session_focus"],
+                "percentage": 50.0,
+                "avg_messages_per_session": 0,
+                "message": "No sessions yet"
+            }
+
+        avg_messages = self.total_messages / self.total_sessions
+
+        # Score based on message count
+        if 5 <= avg_messages <= 15:
+            score = 50  # Perfect - focused sessions
+        elif 3 <= avg_messages < 5 or 15 < avg_messages <= 20:
+            score = 40  # Good - slightly off
+        elif 1 <= avg_messages < 3 or 20 < avg_messages <= 30:
+            score = 20  # Not ideal - too short or too long
+        else:  # < 1 or > 30
+            score = 0   # Poor - way off
+
+        return {
+            "score": score,
+            "max_score": self.WEIGHTS["session_focus"],
+            "percentage": round((score / self.WEIGHTS["session_focus"]) * 100, 1),
+            "avg_messages_per_session": round(avg_messages, 1),
+            "total_messages": self.total_messages,
+            "total_sessions": self.total_sessions,
+            "optimal": 5 <= avg_messages <= 15
+        }
+
+    def calculate_tool_efficiency_score(self) -> Dict:
+        """
+        Calculate Tool Usage Efficiency score (5.6%, 75 points max).
+
+        Tracks optimal tool usage patterns:
+        - Read-before-edit compliance (30 pts)
+        - Parallel tool calls (25 pts)
+        - Glob/Grep preference over Bash (20 pts)
+
+        Returns:
+            Dict with score details
+        """
+        if not self.history_data:
+            return {
+                "score": 37,
+                "max_score": self.WEIGHTS["tool_efficiency"],
+                "percentage": 50.0,
+                "message": "No history data available"
+            }
+
+        read_before_edit_count = 0
+        edit_without_read_count = 0
+        parallel_call_count = 0
+        single_call_count = 0
+        glob_grep_count = 0
+        bash_find_grep_count = 0
+
+        files_read = set()
+
+        for session in self.history_data:
+            messages = session.get("messages", [])
+
+            for msg in messages:
+                if msg.get("role") != "assistant":
+                    continue
+
+                content = msg.get("content", [])
+                if not isinstance(content, list):
+                    continue
+
+                # Count tool calls in this turn
+                tool_calls = [c for c in content if c.get("type") == "tool_use"]
+
+                if len(tool_calls) > 1:
+                    parallel_call_count += 1
+                elif len(tool_calls) == 1:
+                    single_call_count += 1
+
+                # Check read-before-edit and tool preferences
+                for tool_call in tool_calls:
+                    tool_name = tool_call.get("name", "")
+
+                    # Track Read calls
+                    if tool_name == "Read":
+                        file_path = tool_call.get("input", {}).get("file_path", "")
+                        if file_path:
+                            files_read.add(file_path)
+
+                    # Track Edit calls (check if read first)
+                    elif tool_name == "Edit":
+                        file_path = tool_call.get("input", {}).get("file_path", "")
+                        if file_path in files_read:
+                            read_before_edit_count += 1
+                        else:
+                            edit_without_read_count += 1
+
+                    # Track Glob/Grep usage
+                    elif tool_name in ["Glob", "Grep"]:
+                        glob_grep_count += 1
+
+                    # Track Bash find/grep
+                    elif tool_name == "Bash":
+                        command = tool_call.get("input", {}).get("command", "")
+                        if any(cmd in command for cmd in ["find ", "grep ", "rg "]):
+                            bash_find_grep_count += 1
+
+        # Calculate scores
+        # 1. Read-before-edit compliance (30 pts)
+        total_edits = read_before_edit_count + edit_without_read_count
+        if total_edits > 0:
+            read_compliance_pct = (read_before_edit_count / total_edits) * 100
+            if read_compliance_pct >= 90:
+                read_score = 30
+            elif read_compliance_pct >= 75:
+                read_score = 25
+            elif read_compliance_pct >= 60:
+                read_score = 20
+            elif read_compliance_pct >= 40:
+                read_score = 15
+            else:
+                read_score = 10
+        else:
+            read_score = 30  # No edits = no violation
+
+        # 2. Parallel tool usage (25 pts)
+        total_tool_turns = parallel_call_count + single_call_count
+        if total_tool_turns > 0:
+            parallel_pct = (parallel_call_count / total_tool_turns) * 100
+            if parallel_pct >= 40:
+                parallel_score = 25
+            elif parallel_pct >= 30:
+                parallel_score = 20
+            elif parallel_pct >= 20:
+                parallel_score = 15
+            elif parallel_pct >= 10:
+                parallel_score = 10
+            else:
+                parallel_score = 5
+        else:
+            parallel_score = 12  # Neutral
+
+        # 3. Glob/Grep preference (20 pts)
+        total_search = glob_grep_count + bash_find_grep_count
+        if total_search > 0:
+            glob_pct = (glob_grep_count / total_search) * 100
+            if glob_pct >= 90:
+                glob_score = 20
+            elif glob_pct >= 75:
+                glob_score = 16
+            elif glob_pct >= 50:
+                glob_score = 12
+            elif glob_pct >= 25:
+                glob_score = 8
+            else:
+                glob_score = 4
+        else:
+            glob_score = 20  # No searches = assume good practice
+
+        total_score = read_score + parallel_score + glob_score
+
+        return {
+            "score": total_score,
+            "max_score": self.WEIGHTS["tool_efficiency"],
+            "percentage": round((total_score / self.WEIGHTS["tool_efficiency"]) * 100, 1),
+            "read_before_edit": {
+                "compliant": read_before_edit_count,
+                "violations": edit_without_read_count,
+                "score": read_score
+            },
+            "parallel_usage": {
+                "parallel_turns": parallel_call_count,
+                "single_turns": single_call_count,
+                "percentage": round(parallel_pct if total_tool_turns > 0 else 0, 1),
+                "score": parallel_score
+            },
+            "glob_grep_preference": {
+                "glob_grep_count": glob_grep_count,
+                "bash_find_grep_count": bash_find_grep_count,
+                "percentage": round(glob_pct if total_search > 0 else 100, 1),
+                "score": glob_score
+            }
+        }
+
+    def calculate_cost_efficiency_score(self) -> Dict:
+        """
+        Calculate Cost Efficiency score (5.6%, 75 points max).
+
+        Tracks cost-consciousness:
+        - Cost per session vs baseline (40 pts)
+        - Cache usage (saves 90% on input) (20 pts)
+        - Budget compliance (15 pts)
+
+        Returns:
+            Dict with score details
+        """
+        # Calculate average cost per session
+        # Model pricing: Sonnet 4.5 = $3/M input, $15/M output (avg ~$9/M)
+        avg_tokens_per_session = self.total_tokens / self.total_sessions if self.total_sessions > 0 else 0
+        avg_cost_per_session = (avg_tokens_per_session / 1_000_000) * 9.0  # $9 avg per million
+
+        # Baseline cost per session (30K tokens = $0.27)
+        baseline_cost = 0.27
+
+        # 1. Cost per session vs baseline (40 pts)
+        if avg_cost_per_session <= baseline_cost * 0.7:  # 30% better
+            cost_score = 40
+        elif avg_cost_per_session <= baseline_cost * 0.85:  # 15% better
+            cost_score = 35
+        elif avg_cost_per_session <= baseline_cost * 1.0:  # At baseline
+            cost_score = 30
+        elif avg_cost_per_session <= baseline_cost * 1.2:  # 20% worse
+            cost_score = 20
+        elif avg_cost_per_session <= baseline_cost * 1.5:  # 50% worse
+            cost_score = 10
+        else:
+            cost_score = 5
+
+        # 2. Cache effectiveness contribution (20 pts)
+        # Already measured in cache_effectiveness, just check if using cache
+        models_data = self.stats_data.get("models") or self.stats_data.get("modelUsage", {})
+        total_cache_reads = sum(data.get("cacheReadInputTokens", 0) for data in models_data.values())
+
+        if total_cache_reads > 10000:  # Actively using cache
+            cache_contribution = 20
+        elif total_cache_reads > 5000:
+            cache_contribution = 15
+        elif total_cache_reads > 1000:
+            cache_contribution = 10
+        else:
+            cache_contribution = 5
+
+        # 3. Budget compliance (15 pts) - check if staying under reasonable limits
+        # Assume $5/day budget, user has 24 sessions total
+        estimated_daily_sessions = 3  # Reasonable estimate
+        daily_cost_estimate = avg_cost_per_session * estimated_daily_sessions
+
+        if daily_cost_estimate <= 2.0:  # Well under budget
+            budget_score = 15
+        elif daily_cost_estimate <= 5.0:  # Within budget
+            budget_score = 12
+        elif daily_cost_estimate <= 7.0:  # Slightly over
+            budget_score = 8
+        else:
+            budget_score = 4
+
+        total_score = cost_score + cache_contribution + budget_score
+
+        return {
+            "score": total_score,
+            "max_score": self.WEIGHTS["cost_efficiency"],
+            "percentage": round((total_score / self.WEIGHTS["cost_efficiency"]) * 100, 1),
+            "avg_cost_per_session": round(avg_cost_per_session, 4),
+            "baseline_cost": baseline_cost,
+            "cost_ratio": round(avg_cost_per_session / baseline_cost, 2) if baseline_cost > 0 else 1.0,
+            "estimated_daily_cost": round(daily_cost_estimate, 2),
+            "breakdown": {
+                "cost_vs_baseline": cost_score,
+                "cache_contribution": cache_contribution,
+                "budget_compliance": budget_score
+            }
+        }
+
+    def calculate_learning_growth_score(self) -> Dict:
+        """
+        Calculate Learning & Growth score (3.7%, 50 points max).
+
+        Tracks improvement and skill development:
+        - Efficiency improvement trend (25 pts)
+        - Consistency in best practices (15 pts)
+        - Autonomy growth (10 pts)
+
+        Returns:
+            Dict with score details
+        """
+        if self.total_sessions < 10:
+            # Warm-up period - encourage new users
+            return {
+                "score": 25,
+                "max_score": self.WEIGHTS["learning_growth"],
+                "percentage": 50.0,
+                "message": "Keep learning! Score will improve with more sessions.",
+                "sessions": self.total_sessions
+            }
+
+        # Split sessions into early (first 1/3) and recent (last 1/3)
+        if not self.history_data:
+            return {
+                "score": 25,
+                "max_score": self.WEIGHTS["learning_growth"],
+                "percentage": 50.0,
+                "message": "No history data available"
+            }
+
+        total_sessions = len(self.history_data)
+        third = max(1, total_sessions // 3)
+
+        early_sessions = self.history_data[:third]
+        recent_sessions = self.history_data[-third:]
+
+        # Calculate average tokens for early vs recent
+        early_tokens = []
+        recent_tokens = []
+
+        for session in early_sessions:
+            session_tokens = sum(
+                msg.get("tokens", 0)
+                for msg in session.get("messages", [])
+                if msg.get("role") == "assistant"
+            )
+            if session_tokens > 0:
+                early_tokens.append(session_tokens)
+
+        for session in recent_sessions:
+            session_tokens = sum(
+                msg.get("tokens", 0)
+                for msg in session.get("messages", [])
+                if msg.get("role") == "assistant"
+            )
+            if session_tokens > 0:
+                recent_tokens.append(session_tokens)
+
+        # 1. Efficiency improvement (25 pts)
+        if early_tokens and recent_tokens:
+            early_avg = statistics.mean(early_tokens)
+            recent_avg = statistics.mean(recent_tokens)
+            improvement = ((early_avg - recent_avg) / early_avg) * 100 if early_avg > 0 else 0
+
+            if improvement >= 20:  # 20%+ improvement
+                efficiency_score = 25
+            elif improvement >= 10:  # 10%+ improvement
+                efficiency_score = 20
+            elif improvement >= 0:  # Maintained or slight improvement
+                efficiency_score = 15
+            elif improvement >= -10:  # Slight regression
+                efficiency_score = 10
+            else:  # Significant regression
+                efficiency_score = 5
+        else:
+            efficiency_score = 15  # Neutral
+
+        # 2. Consistency (15 pts) - check if maintaining good practices
+        # Count sessions with optimal message count (5-15 messages)
+        optimal_sessions = 0
+        for session in recent_sessions:
+            message_count = len(session.get("messages", []))
+            if 5 <= message_count <= 15:
+                optimal_sessions += 1
+
+        consistency_pct = (optimal_sessions / len(recent_sessions)) * 100 if recent_sessions else 0
+
+        if consistency_pct >= 70:
+            consistency_score = 15
+        elif consistency_pct >= 50:
+            consistency_score = 12
+        elif consistency_pct >= 30:
+            consistency_score = 8
+        else:
+            consistency_score = 4
+
+        # 3. Autonomy growth (10 pts) - fewer messages per session over time
+        early_msg_counts = [len(s.get("messages", [])) for s in early_sessions]
+        recent_msg_counts = [len(s.get("messages", [])) for s in recent_sessions]
+
+        if early_msg_counts and recent_msg_counts:
+            early_avg_msgs = statistics.mean(early_msg_counts)
+            recent_avg_msgs = statistics.mean(recent_msg_counts)
+
+            # Lower message count = more autonomy (doing more yourself)
+            if recent_avg_msgs < early_avg_msgs * 0.9:  # 10%+ reduction
+                autonomy_score = 10
+            elif recent_avg_msgs < early_avg_msgs:
+                autonomy_score = 8
+            elif recent_avg_msgs <= early_avg_msgs * 1.1:  # Within 10%
+                autonomy_score = 6
+            else:
+                autonomy_score = 3
+        else:
+            autonomy_score = 6  # Neutral
+
+        total_score = efficiency_score + consistency_score + autonomy_score
+
+        return {
+            "score": total_score,
+            "max_score": self.WEIGHTS["learning_growth"],
+            "percentage": round((total_score / self.WEIGHTS["learning_growth"]) * 100, 1),
+            "efficiency_improvement": round(improvement if 'improvement' in locals() else 0, 1),
+            "consistency_rate": round(consistency_pct, 1),
+            "breakdown": {
+                "efficiency_improvement": efficiency_score,
+                "consistency": consistency_score,
+                "autonomy_growth": autonomy_score
+            },
+            "early_avg_tokens": round(early_avg, 0) if 'early_avg' in locals() else 0,
+            "recent_avg_tokens": round(recent_avg, 0) if 'recent_avg' in locals() else 0
+        }
+
     def calculate_total_score(self, previous_snapshot: Optional[Dict] = None) -> Dict:
         """
         Calculate total score across all categories.
@@ -762,12 +1244,19 @@ class TokenCraftScorer:
         Returns:
             Complete score breakdown
         """
-        # Calculate each category
+        # Calculate each category (original 5)
         token_efficiency = self.calculate_token_efficiency_score()
         optimization_adoption = self.calculate_optimization_adoption_score()
         self_sufficiency = self.calculate_self_sufficiency_score()
         improvement_trend = self.calculate_improvement_trend_score(previous_snapshot)
         best_practices = self.calculate_best_practices_score()
+
+        # Calculate new categories (v2.0)
+        cache_effectiveness = self.calculate_cache_effectiveness_score()
+        tool_efficiency = self.calculate_tool_efficiency_score()
+        cost_efficiency = self.calculate_cost_efficiency_score()
+        session_focus = self.calculate_session_focus_score()
+        learning_growth = self.calculate_learning_growth_score()
 
         # Sum total score
         total_score = (
@@ -775,19 +1264,43 @@ class TokenCraftScorer:
             optimization_adoption["score"] +
             self_sufficiency["score"] +
             improvement_trend["score"] +
-            best_practices["score"]
+            best_practices["score"] +
+            cache_effectiveness["score"] +
+            tool_efficiency["score"] +
+            cost_efficiency["score"] +
+            session_focus["score"] +
+            learning_growth["score"]
+        )
+
+        # Calculate max possible (sum of all weights currently implemented)
+        max_possible = (
+            self.WEIGHTS["token_efficiency"] +
+            self.WEIGHTS["optimization_adoption"] +
+            self.WEIGHTS["self_sufficiency"] +
+            self.WEIGHTS["improvement_trend"] +
+            self.WEIGHTS["best_practices"] +
+            self.WEIGHTS["cache_effectiveness"] +
+            self.WEIGHTS["tool_efficiency"] +
+            self.WEIGHTS["cost_efficiency"] +
+            self.WEIGHTS["session_focus"] +
+            self.WEIGHTS["learning_growth"]
         )
 
         return {
             "total_score": round(total_score, 1),
-            "max_possible": 1000,
-            "percentage": round((total_score / 1000) * 100, 1),
+            "max_possible": max_possible,
+            "percentage": round((total_score / max_possible) * 100, 1),
             "breakdown": {
                 "token_efficiency": token_efficiency,
                 "optimization_adoption": optimization_adoption,
                 "self_sufficiency": self_sufficiency,
                 "improvement_trend": improvement_trend,
-                "best_practices": best_practices
+                "best_practices": best_practices,
+                "cache_effectiveness": cache_effectiveness,
+                "tool_efficiency": tool_efficiency,
+                "cost_efficiency": cost_efficiency,
+                "session_focus": session_focus,
+                "learning_growth": learning_growth
             },
             "calculated_at": datetime.now().isoformat()
         }
