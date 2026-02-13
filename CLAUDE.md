@@ -1,5 +1,8 @@
 # Token-Craft Project Context
 
+**Note:** Global permission policy from `~/.claude/CLAUDE.md` applies to this project.
+This file adds project-specific context and overrides.
+
 ## Project Overview
 
 **Token-Craft** is a gamified LLM token optimization tool that analyzes Claude Code usage and provides personalized recommendations through space exploration ranks.
