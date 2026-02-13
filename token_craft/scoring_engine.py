@@ -20,11 +20,12 @@ class TokenCraftScorer:
     """Calculate token optimization scores."""
 
     # Scoring weights (total = 1000 points)
+    # Updated to 100% Anthropic best practices alignment
     WEIGHTS = {
-        "token_efficiency": 350,      # 35%
-        "optimization_adoption": 250,  # 25%
+        "token_efficiency": 300,       # 30%
+        "optimization_adoption": 325,  # 32.5% (increased - includes Anthropic best practices)
         "self_sufficiency": 200,       # 20%
-        "improvement_trend": 150,      # 15%
+        "improvement_trend": 125,      # 12.5%
         "best_practices": 50           # 5%
     }
 
@@ -134,14 +135,17 @@ class TokenCraftScorer:
 
     def calculate_optimization_adoption_score(self) -> Dict:
         """
-        Calculate Optimization Adoption score (25%, 250 points max).
+        Calculate Optimization Adoption score (32.5%, 325 points max).
 
-        Tracks usage of 5 key optimizations over 90-day window:
+        Tracks usage of 8 Anthropic best practices over 90-day window:
         1. Defer documentation (50 points)
         2. Use CLAUDE.md (50 points)
         3. Concise response mode (40 points)
         4. Direct commands (60 points)
         5. Context management (50 points)
+        6. XML tags usage (20 points) - Anthropic validated
+        7. Chain of Thought (30 points) - Anthropic validated
+        8. Examples usage (25 points) - Anthropic validated
 
         Returns:
             Dict with score breakdown
@@ -173,6 +177,21 @@ class TokenCraftScorer:
         context_score = self._check_context_management()
         scores["context_mgmt"] = context_score
         total_score += context_score["score"]
+
+        # 6. XML Tags Usage (20 points) - NEW
+        xml_score = self._check_xml_usage()
+        scores["xml_tags"] = xml_score
+        total_score += xml_score["score"]
+
+        # 7. Chain of Thought (30 points) - NEW
+        cot_score = self._check_chain_of_thought()
+        scores["chain_of_thought"] = cot_score
+        total_score += cot_score["score"]
+
+        # 8. Examples Usage (25 points) - NEW
+        examples_score = self._check_examples_usage()
+        scores["examples"] = examples_score
+        total_score += examples_score["score"]
 
         return {
             "score": round(total_score, 1),
@@ -338,6 +357,93 @@ class TokenCraftScorer:
             "max_score": 50,
             "consistency": round(consistency * 100, 1),
             "avg_messages_per_session": round(avg_messages_per_session, 1)
+        }
+
+    def _check_xml_usage(self) -> Dict:
+        """
+        Check for XML tag usage in prompts (Anthropic best practice).
+
+        Anthropic recommends structuring prompts with XML tags like:
+        <document>, <task>, <context>, <example>, etc.
+        """
+        xml_keywords = ["<document>", "<task>", "<context>", "<example>", "<input>", "<output>", "</"]
+
+        xml_sessions = 0
+        for session in self.sessions:
+            for msg in session["messages"]:
+                content = msg.get("message", "")
+                if any(kw in content for kw in xml_keywords):
+                    xml_sessions += 1
+                    break  # Count session once
+
+        consistency = xml_sessions / self.total_sessions if self.total_sessions > 0 else 0
+        score = self._calculate_tier_score(consistency, max_points=20)
+
+        return {
+            "score": score,
+            "max_score": 20,
+            "consistency": round(consistency * 100, 1),
+            "sessions_with_xml": xml_sessions,
+            "total_sessions": self.total_sessions,
+            "benefit": "XML tags improve prompt structure and clarity"
+        }
+
+    def _check_chain_of_thought(self) -> Dict:
+        """
+        Check for Chain of Thought usage (Anthropic best practice).
+
+        Anthropic recommends using CoT prompts like:
+        "let's think step by step", "reasoning:", "because", etc.
+        """
+        cot_keywords = ["let's think", "step by step", "reasoning:", "because", "first", "then", "therefore", "analyze"]
+
+        cot_sessions = 0
+        for session in self.sessions:
+            for msg in session["messages"]:
+                content = msg.get("message", "").lower()
+                if any(kw in content for kw in cot_keywords):
+                    cot_sessions += 1
+                    break  # Count session once
+
+        consistency = cot_sessions / self.total_sessions if self.total_sessions > 0 else 0
+        score = self._calculate_tier_score(consistency, max_points=30)
+
+        return {
+            "score": score,
+            "max_score": 30,
+            "consistency": round(consistency * 100, 1),
+            "sessions_with_cot": cot_sessions,
+            "total_sessions": self.total_sessions,
+            "benefit": "Chain of Thought improves reasoning quality and accuracy"
+        }
+
+    def _check_examples_usage(self) -> Dict:
+        """
+        Check for examples/few-shot prompting (Anthropic best practice).
+
+        Anthropic recommends providing examples like:
+        "for example", "e.g.", "such as", "like this:", etc.
+        """
+        example_keywords = ["for example", "e.g.", "such as", "like this:", "here's an example", "example:"]
+
+        example_sessions = 0
+        for session in self.sessions:
+            for msg in session["messages"]:
+                content = msg.get("message", "").lower()
+                if any(kw in content for kw in example_keywords):
+                    example_sessions += 1
+                    break  # Count session once
+
+        consistency = example_sessions / self.total_sessions if self.total_sessions > 0 else 0
+        score = self._calculate_tier_score(consistency, max_points=25)
+
+        return {
+            "score": score,
+            "max_score": 25,
+            "consistency": round(consistency * 100, 1),
+            "sessions_with_examples": example_sessions,
+            "total_sessions": self.total_sessions,
+            "benefit": "Examples improve output quality and reduce iterations"
         }
 
     def _calculate_tier_score(self, consistency: float, max_points: int) -> float:
