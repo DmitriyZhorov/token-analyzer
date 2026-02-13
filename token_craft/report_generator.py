@@ -101,7 +101,7 @@ class ReportGenerator:
         lines.append("=" * 50)
         lines.append("")
         lines.append(f"Rank: {rank_data['name']} {rank_data['icon']}")
-        lines.append(f"Score: {score_data['total_score']:.0f}/1000")
+        lines.append(f"Score: {score_data['total_score']:.0f}/{score_data['max_possible']}")
 
         next_rank = SpaceRankSystem.get_next_rank(score_data["total_score"])
         if next_rank:
