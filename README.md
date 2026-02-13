@@ -2,6 +2,21 @@
 
 Analyzes your Claude Code token usage and provides breakdown by task categories.
 
+## 🆕 Version 2 Available!
+
+**New:** [Version 2](README_V2.md) includes advanced features:
+- Scope selection (choose projects to analyze)
+- Interactive optimization with trade-off analysis
+- Delta tracking and improvement measurement
+- Detailed estimated savings
+- Snapshot history
+
+**Quick start V2:** `python analyze_tokens_v2.py`
+
+---
+
+## Version 1 (Original)
+
 ## What it does
 
 - Shows total token usage across all models (Sonnet, Opus, Haiku)
