@@ -87,8 +87,11 @@ class TokenCraftScorer:
         """Calculate total tokens from stats data."""
         total = 0
 
-        if "models" in self.stats_data:
-            for model, data in self.stats_data["models"].items():
+        # Support both old format ("models") and new format ("modelUsage")
+        models_data = self.stats_data.get("models") or self.stats_data.get("modelUsage")
+
+        if models_data:
+            for model, data in models_data.items():
                 if isinstance(data, dict):
                     total += data.get("inputTokens", 0)
                     total += data.get("outputTokens", 0)
