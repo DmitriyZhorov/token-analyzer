@@ -2,6 +2,7 @@
 Token-Craft Skill Handler (Full Version)
 
 Main entry point with all features: leaderboards, team export, hero badges, interactive menu.
+Supports v3.0 gamification with difficulty scaling, streaks, achievements, and regression detection.
 """
 
 import json
@@ -23,6 +24,11 @@ from token_craft.hero_api_client import MockHeroClient
 from token_craft.team_exporter import TeamExporter
 from token_craft.recommendation_engine import RecommendationEngine
 from token_craft.interactive_menu import InteractiveMenu
+from token_craft.difficulty_modifier import DifficultyModifier
+from token_craft.streak_system import StreakSystem
+from token_craft.achievement_engine import AchievementEngine
+from token_craft.time_based_mechanics import TimeBasedMechanics
+from token_craft.regression_detector import RegressionDetector
 
 
 class TokenCraftHandlerFull:
@@ -74,15 +80,26 @@ class TokenCraftHandlerFull:
 
         return history_data, stats_data
 
-    def calculate_scores(self, history_data: list, stats_data: Dict, previous_snapshot: Optional[Dict] = None) -> Dict:
-        """Calculate user scores."""
-        scorer = TokenCraftScorer(history_data, stats_data)
+    def calculate_scores(self, history_data: list, stats_data: Dict, previous_snapshot: Optional[Dict] = None, user_rank: int = 1) -> Dict:
+        """
+        Calculate user scores using v3.0 system.
+
+        Args:
+            history_data: Parsed history.jsonl
+            stats_data: Parsed stats-cache.json
+            previous_snapshot: Previous snapshot for trend calculation
+            user_rank: Current user rank (1-10) for v3.0 difficulty scaling
+
+        Returns:
+            Score data with v3.0 metrics
+        """
+        scorer = TokenCraftScorer(history_data, stats_data, user_rank=user_rank, user_profile=self.profile.get_current_state())
         score_data = scorer.calculate_total_score(previous_snapshot)
         return score_data
 
     def run_analysis(self) -> bool:
         """
-        Run full analysis and cache results.
+        Run full analysis and cache results (v3.0 with difficulty scaling).
 
         Returns:
             True if successful
@@ -98,19 +115,25 @@ class TokenCraftHandlerFull:
             # Get previous snapshot
             previous_snapshot = self.snapshot_manager.get_latest_snapshot()
 
-            # Calculate scores
-            print("Calculating your scores...")
+            # Calculate current rank for v3.0 difficulty scaling
             previous_profile = None
             if previous_snapshot and isinstance(previous_snapshot, dict):
                 previous_profile = previous_snapshot.get("profile")
 
+            previous_score = previous_profile.get("total_score", 0) if previous_profile else 0
+            previous_rank_data = SpaceRankSystem.get_rank(previous_score)
+            current_rank = previous_rank_data.get("rank", 1)
+
+            # Calculate scores with v3.0 difficulty scaling
+            print("Calculating your scores (v3.0 with difficulty scaling)...")
             self.current_score_data = self.calculate_scores(
                 history_data,
                 stats_data,
-                previous_profile
+                previous_profile,
+                user_rank=current_rank
             )
 
-            # Get rank
+            # Get new rank based on v3.0 score
             self.current_rank_data = SpaceRankSystem.get_rank(self.current_score_data["total_score"])
 
             # Calculate delta
