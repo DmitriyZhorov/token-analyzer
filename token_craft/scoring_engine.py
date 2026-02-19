@@ -35,6 +35,7 @@ from .difficulty_modifier import DifficultyModifier
 from .streak_system import StreakSystem, ComboBonus
 from .achievement_engine import AchievementEngine
 from .time_based_mechanics import TimeBasedMechanics
+from .regression_detector import RegressionDetector
 
 
 class TokenCraftScorer:
@@ -104,6 +105,7 @@ class TokenCraftScorer:
         self.difficulty = DifficultyModifier.get_difficulty(rank)
         self.streak_system = StreakSystem(user_profile)
         self.achievement_engine = AchievementEngine(user_profile)
+        self.regression_detector = RegressionDetector()  # Phase 10: Regression detection
 
         # Parse and prepare data
         self._prepare_data()
@@ -1473,6 +1475,18 @@ class TokenCraftScorer:
         # Final score (before time modifiers)
         final_score = score_after_combo + streak_bonus_points
 
+        # Phase 10: Detect performance regression
+        current_efficiency = token_efficiency.get("efficiency_ratio", 1.0)
+        personal_best_efficiency = token_efficiency.get("personal_best_efficiency", current_efficiency)
+        recent_scores = self.user_profile.get("recent_session_scores", [])
+
+        regression_analysis = self.regression_detector.analyze_regression(
+            current_score=final_score,
+            current_efficiency=current_efficiency,
+            personal_best_efficiency=personal_best_efficiency,
+            recent_scores=recent_scores,
+        )
+
         # Apply time-based mechanics (recency bonus, inactivity decay)
         time_adjusted = TimeBasedMechanics.apply_time_modifiers(
             final_score,
@@ -1543,6 +1557,13 @@ class TokenCraftScorer:
             "difficulty_info": self.difficulty,
             "streak_info": streak_info,
             "combo_info": combo_result,
+            "regression_analysis": {  # Phase 10: Performance regression detection
+                "has_regressed": regression_analysis.get("has_regressed", False),
+                "severity": regression_analysis.get("severity", "none"),
+                "efficiency": regression_analysis.get("efficiency", {}),
+                "score": regression_analysis.get("score", {}),
+                "recommendation": regression_analysis.get("recommendation", ""),
+            },
             "calculated_at": datetime.now().isoformat(),
             "version": "3.0"
         }
