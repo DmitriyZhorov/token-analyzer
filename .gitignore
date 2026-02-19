@@ -56,3 +56,6 @@ Thumbs.db
 
 # Internal documentation archive
 _archive/
+
+# Git worktrees
+.worktrees/
