@@ -2,6 +2,14 @@
 Token-Craft Skill Handler
 
 Main entry point for the /token-craft skill.
+Supports v3.0 gamification system with:
+- 10 ranks with exponential progression
+- Difficulty scaling by rank
+- Streak multipliers (1.0x-1.25x)
+- Combo bonuses (25-150 pts)
+- 25+ achievements
+- Time-based mechanics (recency, decay, seasonal)
+- Regression detection
 """
 
 import json
@@ -18,6 +26,10 @@ from token_craft.user_profile import UserProfile
 from token_craft.snapshot_manager import SnapshotManager
 from token_craft.delta_calculator import DeltaCalculator
 from token_craft.report_generator import ReportGenerator
+from token_craft.difficulty_modifier import DifficultyModifier
+from token_craft.streak_system import StreakSystem
+from token_craft.achievement_engine import AchievementEngine
+from token_craft.time_based_mechanics import TimeBasedMechanics
 
 
 class TokenCraftHandler:
@@ -66,29 +78,30 @@ class TokenCraftHandler:
 
         return history_data, stats_data
 
-    def calculate_scores(self, history_data: list, stats_data: Dict, previous_snapshot: Optional[Dict] = None) -> Dict:
+    def calculate_scores(self, history_data: list, stats_data: Dict, previous_snapshot: Optional[Dict] = None, user_rank: int = 1) -> Dict:
         """
-        Calculate user scores.
+        Calculate user scores using v3.0 system.
 
         Args:
             history_data: Parsed history.jsonl
             stats_data: Parsed stats-cache.json
             previous_snapshot: Previous snapshot for trend calculation
+            user_rank: Current user rank (1-10) for difficulty scaling
 
         Returns:
-            Score data
+            Score data with v3.0 metrics
         """
-        scorer = TokenCraftScorer(history_data, stats_data)
+        scorer = TokenCraftScorer(history_data, stats_data, user_rank=user_rank, user_profile=self.profile.get_current_state())
         score_data = scorer.calculate_total_score(previous_snapshot)
 
         return score_data
 
     def run(self, mode: str = "full") -> str:
         """
-        Run the Token-Craft analysis.
+        Run the Token-Craft v3.0 analysis.
 
         Args:
-            mode: 'full', 'summary', or 'quick'
+            mode: 'full', 'summary', 'quick', or 'v3'
 
         Returns:
             Formatted report
@@ -104,19 +117,26 @@ class TokenCraftHandler:
             # Get previous snapshot for comparison
             previous_snapshot = self.snapshot_manager.get_latest_snapshot()
 
-            # Calculate scores
-            print("Calculating your scores...")
+            # Get current rank (for difficulty scaling in v3.0)
             previous_profile = None
             if previous_snapshot and isinstance(previous_snapshot, dict):
                 previous_profile = previous_snapshot.get("profile")
 
+            current_rank_data = SpaceRankSystem.get_rank(
+                previous_profile.get("total_score", 0) if previous_profile else 0
+            )
+            current_rank = current_rank_data.get("rank", 1)
+
+            # Calculate scores (with v3.0 difficulty scaling)
+            print("Calculating your scores (v3.0 system)...")
             score_data = self.calculate_scores(
                 history_data,
                 stats_data,
-                previous_profile
+                previous_profile,
+                user_rank=current_rank
             )
 
-            # Get rank
+            # Get new rank based on v3.0 score
             rank_data = SpaceRankSystem.get_rank(score_data["total_score"])
 
             # Calculate delta if we have previous data
@@ -157,13 +177,10 @@ class TokenCraftHandler:
                 )
             elif mode == "quick":
                 report = self._generate_quick_status(score_data, rank_data)
+            elif mode == "v3":
+                report = self._generate_v3_full_report(score_data, rank_data, delta_data)
             else:  # full
-                report = self.report_generator.generate_full_report(
-                    self.profile.get_current_state(),
-                    score_data,
-                    rank_data,
-                    delta_data
-                )
+                report = self._generate_v3_full_report(score_data, rank_data, delta_data)
 
             return report
 
@@ -230,35 +247,149 @@ class TokenCraftHandler:
 
         return status
 
+    def _generate_v3_full_report(self, score_data: Dict, rank_data: Dict, delta_data: Optional[Dict]) -> str:
+        """Generate comprehensive v3.0 report with all gamification features."""
+        lines = []
+
+        # Header
+        lines.append("\n" + "="*70)
+        lines.append("          ⚡ TOKEN-CRAFT v3.0 - GAMIFIED OPTIMIZATION REPORT")
+        lines.append("="*70)
+
+        # Rank and Score
+        lines.append(f"\n{rank_data['icon']} RANK: {rank_data['name'].upper()}")
+        lines.append(f"   📊 Score: {score_data['total_score']:.0f} / {score_data['max_achievable']:.0f} pts ({score_data['percentage']:.1f}%)")
+
+        # Breakdown
+        lines.append("\n" + "-"*70)
+        lines.append("📈 SCORING BREAKDOWN (10 Categories)")
+        lines.append("-"*70)
+
+        breakdown = score_data["breakdown"]
+        for category, data in breakdown.items():
+            if isinstance(data, dict):
+                score = data.get("score", 0)
+                max_pts = data.get("max_points", 100)
+                pct = (score / max_pts * 100) if max_pts > 0 else 0
+                label = category.replace("_", " ").title()
+                lines.append(f"  {label:.<40} {score:>6.0f} / {max_pts:<6.0f} ({pct:>5.1f}%)")
+
+        lines.append(f"  {'Base Score':.<40} {score_data['base_score']:>6.0f}")
+
+        # Bonuses
+        bonuses = score_data.get("bonuses", {})
+        if bonuses:
+            lines.append("\n" + "-"*70)
+            lines.append("🎁 BONUSES & MULTIPLIERS")
+            lines.append("-"*70)
+
+            # Streak
+            streak = bonuses.get("streak", {})
+            if streak:
+                lines.append(f"  Streak (Length: {streak.get('streak_length', 0)})")
+                lines.append(f"    Multiplier: {streak.get('multiplier', 1.0)}x")
+                lines.append(f"    Bonus Points: +{streak.get('bonus_points', 0):.0f}")
+
+            # Combo
+            combo = bonuses.get("combo", {})
+            if combo:
+                lines.append(f"  Combo ({combo.get('tier', 'None')})")
+                lines.append(f"    Categories: {combo.get('excellent_categories', 0)} > 80%")
+                lines.append(f"    Bonus Points: +{combo.get('bonus_points', 0):.0f}")
+
+            # Time Modifiers
+            time_mod = bonuses.get("time_modifiers", {})
+            if time_mod:
+                lines.append(f"  Time Modifiers")
+                lines.append(f"    Recency: {time_mod.get('recency_multiplier', 1.0)}x")
+                if time_mod.get('decay_multiplier', 1.0) < 1.0:
+                    lines.append(f"    Decay: {time_mod.get('decay_multiplier', 1.0)}x")
+
+            # Achievements
+            ach = bonuses.get("achievements", {})
+            if ach and ach.get("newly_unlocked", 0) > 0:
+                lines.append(f"  🏆 NEW ACHIEVEMENTS: +{ach.get('newly_unlocked', 0)}")
+
+        # Difficulty Info
+        diff = score_data.get("difficulty_info", {})
+        if diff:
+            lines.append("\n" + "-"*70)
+            lines.append("⚙️  DIFFICULTY LEVEL (Rank-Based)")
+            lines.append("-"*70)
+            lines.append(f"  Current Rank: {diff.get('rank_name', 'Unknown')}")
+            lines.append(f"  Difficulty: {diff.get('difficulty_label', 'Standard')}")
+            lines.append(f"  Token Efficiency Baseline: {diff.get('token_efficiency_baseline', 'N/A'):,} tokens/session")
+
+        # Regression Analysis
+        regression = score_data.get("regression_analysis", {})
+        if regression and regression.get("has_regressed", False):
+            lines.append("\n" + "-"*70)
+            lines.append("⚠️  PERFORMANCE REGRESSION DETECTED")
+            lines.append("-"*70)
+            lines.append(f"  Severity: {regression.get('severity', 'unknown').upper()}")
+            if regression.get("efficiency", {}).get("has_regressed"):
+                lines.append(f"  Efficiency: {regression['efficiency'].get('efficiency_drop_pct', 0):.1f}% drop")
+            if regression.get("score", {}).get("has_regressed"):
+                lines.append(f"  Score Trend: {regression['score'].get('score_drop_pct', 0):.1f}% drop")
+            lines.append(f"  Action: {regression.get('recommendation', 'Continue improving')}")
+
+        # Newly Unlocked Achievements
+        new_achievements = score_data.get("newly_unlocked_achievements", [])
+        if new_achievements:
+            lines.append("\n" + "-"*70)
+            lines.append("🎯 NEWLY UNLOCKED ACHIEVEMENTS")
+            lines.append("-"*70)
+            for ach in new_achievements:
+                lines.append(f"  ✓ {ach.get('name', 'Unknown')} (+{ach.get('points', 0)} pts)")
+
+        # Next Rank
+        next_rank = SpaceRankSystem.get_next_rank(score_data["total_score"])
+        if next_rank:
+            lines.append("\n" + "-"*70)
+            lines.append("🚀 NEXT MILESTONE")
+            lines.append("-"*70)
+            lines.append(f"  Rank: {next_rank['icon']} {next_rank['name']}")
+            lines.append(f"  Points Needed: {next_rank['points_needed']:.0f}")
+
+        # Footer
+        lines.append("\n" + "="*70)
+        lines.append("Version 3.0 | Difficulty scales with rank | 10 ranks | Max 2300+ pts")
+        lines.append("="*70 + "\n")
+
+        return "\n".join(lines)
+
 
 def show_menu():
     """Show interactive menu and get user choice."""
     print("\n" + "="*70)
-    print("              TOKEN-CRAFT - Interactive Menu")
+    print("              TOKEN-CRAFT v3.0 - Interactive Menu")
     print("="*70)
     print("\nHow would you like to view your report?\n")
-    print("  [1] Full Report (detailed breakdown with recommendations)")
+    print("  [1] Full Report v3.0 (comprehensive with v3.0 features)")
     print("  [2] Quick Summary (rank and score overview)")
     print("  [3] One-Line Status (just rank and score)")
     print("  [4] JSON Output (for programmatic access)")
+    print("  [5] Legacy Report (original format)")
     print("  [Q] Quit")
     print("\n" + "="*70)
 
     while True:
         choice = input("\nYour choice: ").strip().upper()
 
-        if choice in ['1', 'FULL', 'F']:
-            return 'full'
+        if choice in ['1', 'FULL', 'F', 'V3']:
+            return 'v3'
         elif choice in ['2', 'SUMMARY', 'S']:
             return 'summary'
-        elif choice in ['3', 'QUICK', 'Q', 'ONE']:
+        elif choice in ['3', 'QUICK', 'O', 'ONE']:
             return 'quick'
         elif choice in ['4', 'JSON', 'J']:
             return 'json'
+        elif choice in ['5', 'LEGACY', 'L']:
+            return 'full'
         elif choice in ['QUIT', 'EXIT', 'Q']:
             return None
         else:
-            print("❌ Invalid choice. Please select 1, 2, 3, 4, or Q.")
+            print("❌ Invalid choice. Please select 1, 2, 3, 4, 5, or Q.")
 
 
 def main():
@@ -275,14 +406,14 @@ def main():
     mode = show_menu()
 
     if mode is None:
-        print("\n👋 Thanks for using Token-Craft!")
+        print("\n👋 Thanks for using Token-Craft v3.0!")
         return
 
     # Run analysis
     handler = TokenCraftHandler()
 
     if mode == 'json':
-        report = handler.run(mode='full')
+        report = handler.run(mode='v3')
         output = {
             "profile": handler.profile.get_current_state(),
             "report": report
